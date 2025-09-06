@@ -16,3 +16,13 @@ def home():
 def patients(): 
     data = load_data()
     return data 
+
+
+@app.get("/patients/{patient_name : str}")
+def view_patient(patient_name):
+    data = load_data();
+    for patient in data:
+        if patient["name"] == patient_name:
+            return patient
+    else:
+        return {"message": "Patient not found"}
