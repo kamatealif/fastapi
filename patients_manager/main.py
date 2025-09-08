@@ -1,3 +1,4 @@
+import uvicorn
 from fastapi import FastAPI
 import json
 
@@ -26,3 +27,7 @@ def view_patient(patient_name):
             return patient
     else:
         return {"message": "Patient not found"}
+
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="127.0.0.1", port=8000)
