@@ -1,5 +1,5 @@
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI,Path, HTTPException
 import json
 
 app = FastAPI()
@@ -19,14 +19,14 @@ def patients():
     return data 
 
 
-@app.get("/patients/{patient_name : str}")
-def view_patient(patient_name):
+@app.get("/patient/{patient_name}")
+def view_patient(patient_name : str = Path(..., description="Name of the patient", example="John Doe")):
     data = load_data();
     for patient in data:
         if patient["name"] == patient_name:
             return patient
     else:
-        return {"message": "Patient not found"}
+       raise HTTPException(status_code=404, detail="Patient not found")
 
 
 if __name__ == "__main__":
