@@ -17,6 +17,7 @@ def update_data (patient : Patient):
     print("Updated....")
 
 patient_info = {"name": "John Doe", "age": 30}
+# patient_info = {"name": "John Doe", "age": "30"} # this is also good because pydantic convert it to int
 patient1 = Patient(**patient_info)
 
 update_data(patient1)
