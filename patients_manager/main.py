@@ -26,14 +26,14 @@ def view_patient(patient_name : str = Path(..., description="Name of the patient
         if patient["name"] == patient_name:
             return patient
     else:
-       raise HTTPException(status_code=404, detail="Patient not found")
+        raise HTTPException(status_code=404, detail="Patient not found")
 
 @app.get('/sort')
 def sort_by(sort_by: str = Query(..., description="Sort by name, age, height, weight, bmi", examples="name"), order: str = Query('asc', description="Order by asc or desc", examples="asc")):
     valid_fields = ['name','age,','height','weight','bmi']
     if sort_by not in valid_fields:
         raise HTTPException(status_code=400, detail=f"Invalid field, select from {valid_fields}")
-    
+
     if order not in ['asc', 'desc']:
         raise HTTPException(status_code=400, details=f"Invalid order, select from asc or desc")
     data = load_data()
