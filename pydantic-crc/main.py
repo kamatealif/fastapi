@@ -4,7 +4,7 @@ class Patient(BaseModel):
     name : str
     age : int
     weight : float
-    married : bool
+    married : bool = False
     alergies : Optional[List[str]] = None;
     contact_info : Dict[str, str]
 
@@ -29,6 +29,6 @@ insert_data(patient1)
 update_data(patient1)
 
 
-patient_info={"name": "Jane Doe", "age": 23, "weight": 50.2, "married":True, "contact_info" : {"email": "GZBb2@example.com", "phone": "123-456-7890"}}
+patient_info={"name": "Jane Doe", "age": 23, "weight": 50.2, "contact_info" : {"email": "GZBb2@example.com", "phone": "123-456-7890"}}
 patient2 = Patient(**patient_info)
 insert_data(patient2)
