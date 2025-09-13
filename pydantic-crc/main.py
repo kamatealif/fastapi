@@ -1,7 +1,9 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr, AnyUrl
 from typing import List, Dict, Optional
 class Patient(BaseModel):
     name : str
+    email: EmailStr
+    github_url : AnyUrl
     age : int
     weight : float
     married : bool = False
@@ -22,13 +24,13 @@ def update_data (patient : Patient):
     print("Updated....")
     print()
 
-patient_info = {"name": "John Doe", "age": 30, "weight": 75.5, "married": True, "alergies": ["penicillin", "aspirin"], "contact_info": {"email": "GZBb2@example.com", "phone": "123-456-7890"}}
+# patient_info = {"name": "John Doe", "age": 30, "weight": 75.5, "married": True, "alergies": ["penicillin", "aspirin"], "contact_info": {"email": "GZBb2@example.com", "phone": "123-456-7890"}}
 # patient_info = {"name": "John Doe", "age": "30"} # this is also good because pydantic convert it to int
-patient1 = Patient(**patient_info)
-insert_data(patient1)
-update_data(patient1)
+# patient1 = Patient(**patient_info)
+# insert_data(patient1)
+# update_data(patient1)
 
 
-patient_info={"name": "Jane Doe", "age": 23, "weight": 50.2, "contact_info" : {"email": "GZBb2@example.com", "phone": "123-456-7890"}}
+patient_info={"name": "Jane Doe", 'email': "janedoe@gmail.com", 'github_url':"https://github.com/janedoe", "age": 23, "weight": 50.2, "contact_info" : {"email": "GZBb2@example.com", "phone": "123-456-7890"}}
 patient2 = Patient(**patient_info)
 insert_data(patient2)
