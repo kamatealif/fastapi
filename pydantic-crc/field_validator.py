@@ -24,6 +24,22 @@ class Patient(BaseModel):
             raise ValueError(f"Email domain must be one of the following: {', '.join(valid_domains)}")
         return value
     
+    @field_validator('name')
+    @classmethod
+    def transform_name(cls, value):
+        return value.upper()
+    
+    #age validation 
+    @field_validator('age', mode='after')
+    @classmethod
+    def validate_age(cls, value):
+        if 0 < value < 100:
+            return value
+        else:
+            raise ValueError("Age should be in between 0 - 100")
+            
+    
+    
 def update_data(patient: Patient):
     for key, value in patient.model_dump().items():
         print(f"{key} : {value}")
