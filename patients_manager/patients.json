@@ -1,5 +1,6 @@
 [
   {
+    "patient_id": "p001",
     "name": "John Doe",
     "weight": 70,
     "height": 170,
@@ -7,9 +8,11 @@
     "city": "New York",
     "email": "john.doe@example.com",
     "phone number": "123-456-7890",
-    "age": 25
+    "age": 25,
+    "gender": "Male"
   },
   {
+    "patient_id": "p002",
     "name": "Jane Doe",
     "weight": 60,
     "height": 165,
@@ -17,9 +20,11 @@
     "city": "Los Angeles",
     "email": "jane.doe@example.com",
     "phone number": "098-765-4321",
-    "age": 28
+    "age": 28,
+    "gender": "Female"
   },
   {
+    "patient_id": "p003",
     "name": "Bob Smith",
     "weight": 75,
     "height": 180,
@@ -27,9 +32,11 @@
     "city": "Chicago",
     "email": "bob.smith@example.com",
     "phone number": "555-123-4567",
-    "age": 30
+    "age": 30,
+    "gender": "Male"
   },
   {
+    "patient_id": "p004",
     "name": "Alice Johnson",
     "weight": 55,
     "height": 158,
@@ -37,9 +44,11 @@
     "city": "Houston",
     "email": "alice.johnson@example.com",
     "phone number": "555-555-1234",
-    "age": 27
+    "age": 27,
+    "gender": "Female"
   },
   {
+    "patient_id": "p005",
     "name": "Mike Brown",
     "weight": 80,
     "height": 185,
@@ -47,6 +56,7 @@
     "city": "Philadelphia",
     "email": "mike.brown@example.com",
     "phone number": "555-555-5555",
-    "age": 32
+    "age": 32,
+    "gender": "Male"
   }
 ]
