@@ -4,8 +4,37 @@ from pydantic import BaseModel, Field, computed_field
 from typing import Annotated, Literal, Optional
 import json
 
+import sqlite3
+
+def get_connection():
+     # allow usage from multiple threads (typical for FastAPI)
+    conn = sqlite3.connect('patients.db', check_same_thread=False)
+     # return rows as sqlite3.Row (dict-like)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def init_db():
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+                   create table if not exists patients(
+                       patient_id text primary key,
+                       name text not null,
+                       city text not null,
+                       age integer not null,
+                       gender text not null check(gender in ('male', 'female', 'others')),
+                       height real not null,
+                       weight real not null,
+                       bmi real not null,
+                       verdict text not null);
+                   """) 
+    conn.commit()
+    conn.close()
 app = FastAPI()
 
+@app.on_event('startup')
+def on_startup():
+    init_db()
 class Patient(BaseModel):
 
     id: Annotated[str, Field(..., description='ID of the patient', examples=['P001'])]
@@ -25,21 +54,14 @@ class Patient(BaseModel):
     @computed_field
     @property
     def verdict(self) -> str:
-
         if self.bmi < 18.5:
-            return 'Underweight'
+            return "Underweight"
         elif self.bmi < 25:
-            return 'Normal'
+            return "Normal"
         elif self.bmi < 30:
-            return 'Normal'
+            return "Overweight"     
         else:
-            return 'Obese'
-     
-def load_data():
-    with open('patients.json', 'r') as f:
-        data = json.load(f)
-
-    return data
+            return "Obese"
 
 def save_data(data):
     with open('patients.json', 'w') as f:
@@ -56,52 +78,55 @@ def about():
 
 @app.get('/view')
 def view():
-    data = load_data()
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute('''SELECT * FROM patients''')
+    rows = cursor.fetchall()
+    result = [dict(row) for row in rows]
+    conn.close()
+    return result
 
-    return data
+# @app.get('/patient/{patient_id}')
+# def view_patient(patient_id: str = Path(..., description='ID of the patient in the DB', example='P001')):
+#     # load all the patients
+#     # data = load_data()
 
-@app.get('/patient/{patient_id}')
-def view_patient(patient_id: str = Path(..., description='ID of the patient in the DB', example='P001')):
-    # load all the patients
-    data = load_data()
+#     # if patient_id in data:
+#     #     return data[patient_id]
+#     # raise HTTPException(status_code=404, detail='Patient not found')
 
-    if patient_id in data:
-        return data[patient_id]
-    raise HTTPException(status_code=404, detail='Patient not found')
+# @app.get('/sort')
+# def sort_patients(sort_by: str = Query(..., description='Sort on the basis of height, weight or bmi'), order: str = Query('asc', description='sort in asc or desc order')):
 
-@app.get('/sort')
-def sort_patients(sort_by: str = Query(..., description='Sort on the basis of height, weight or bmi'), order: str = Query('asc', description='sort in asc or desc order')):
+#     valid_fields = ['height', 'weight', 'bmi']
 
-    valid_fields = ['height', 'weight', 'bmi']
-
-    if sort_by not in valid_fields:
-        raise HTTPException(status_code=400, detail=f'Invalid field select from {valid_fields}')
+#     if sort_by not in valid_fields:
+#         raise HTTPException(status_code=400, detail=f'Invalid field select from {valid_fields}')
     
-    if order not in ['asc', 'desc']:
-        raise HTTPException(status_code=400, detail='Invalid order select between asc and desc')
+#     if order not in ['asc', 'desc']:
+#         raise HTTPException(status_code=400, detail='Invalid order select between asc and desc')
     
-    data = load_data()
+#     data = load_data()
 
-    sort_order = True if order=='desc' else False
+#     sort_order = True if order=='desc' else False
 
-    sorted_data = sorted(data.values(), key=lambda x: x.get(sort_by, 0), reverse=sort_order)
+#     sorted_data = sorted(data.values(), key=lambda x: x.get(sort_by, 0), reverse=sort_order)
 
-    return sorted_data
+#     return sorted_data
 
 @app.post('/create')
 def create_patient(patient: Patient):
 
-    # load existing data
-    data = load_data()
-
-    # check if the patient already exists
-    if patient.id in data:
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute('''INSERT INTO patients (patient_id, name, city, age, gender, height, weight,bmi, verdict) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''', (patient.id, patient.name, patient.city, patient.age, patient.gender, patient.height, patient.weight, patient.bmi, patient.verdict))
+        
+        conn.commit()
+    except sqlite3.IntegrityError as e:
+        conn.close()
         raise HTTPException(status_code=400, detail='Patient already exists')
-
-    # new patient add to the database
-    data[patient.id] = {k: v for k, v in patient.dict().items() if k != 'id'}
-
-    # save into the json file
-    save_data(data)
-
-    return JSONResponse(status_code=201, content={'message':'patient created successfully'})
+    finally:
+        conn.close()
+    
+    return JSONResponse(status_code=201, content={'message': 'Patient created successfully'})
