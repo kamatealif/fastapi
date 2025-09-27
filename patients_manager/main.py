@@ -35,9 +35,11 @@ app = FastAPI()
 @app.on_event('startup')
 def on_startup():
     init_db()
+    
+#pydantic model for creating the patient
 class Patient(BaseModel):
 
-    id: Annotated[str, Field(..., description='ID of the patient', examples=['P001'])]
+    id: Annotated[int, Field(..., description='ID of the patient', examples=['1'])]
     name: Annotated[str, Field(..., description='Name of the patient')]
     city: Annotated[str, Field(..., description='City where the patient is living')]
     age: Annotated[int, Field(..., gt=0, lt=120, description='Age of the patient')]
@@ -62,6 +64,16 @@ class Patient(BaseModel):
             return "Overweight"     
         else:
             return "Obese"
+
+# pydantic model for updating the user info
+class UpdatePatient(BaseModel):
+    name: Annotated[Optional[str], Field(description='Name of the patient')] = None
+    city: Annotated[Optional[str], Field(description='City where the patient is living')] = None
+    age: Annotated[Optional[int], Field(gt=0, lt=120, description='Age of the patient')] = None
+    gender: Annotated[Optional[Literal['male', 'female', 'others']], Field(description='Gender of the patient')] = None
+    height: Annotated[Optional[float], Field(gt=0, description='Height of the patient in mtrs')] = None
+    weight: Annotated[Optional[float], Field(gt=0, description='Weight of the patient in kgs')] = None
+
 
 def save_data(data):
     with open('patients.json', 'w') as f:
@@ -143,3 +155,102 @@ def create_patient(patient: Patient):
     
     # return statuscode to variafy patient created 
     return JSONResponse(status_code=201, content={'message': 'Patient created successfully'})
+
+
+@app.put("/edit/{id}")
+def update_patient(id: int, patch: UpdatePatient):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    # 1) fetch existing patient row (parameterized)
+    cur.execute("SELECT * FROM patients WHERE patient_id = ?", (id,))
+    row = cur.fetchone()
+    if not row:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+    existing = dict(row)  # sqlite3.Row -> dict
+
+    # 2) get only the fields the user sent
+    changes = patch.model_dump(exclude_unset=True)   # only provided fields
+    if not changes:
+        conn.close()
+        raise HTTPException(status_code=400, detail="No fields provided to update")
+
+    # 3) build a Patient instance from existing DB values (map patient_id -> id)
+    patient_data = {
+        "id": existing["patient_id"],
+        "name": existing["name"],
+        "city": existing["city"],
+        "age": existing["age"],
+        "gender": existing["gender"],
+        "height": existing["height"],
+        "weight": existing["weight"],
+    }
+    existing_patient = Patient(**patient_data)
+
+    # 4) merge updates into the Patient model (validation applied)
+    merged_patient = existing_patient.model_copy(update=changes)
+
+    # 5) recompute computed fields
+    new_bmi = merged_patient.bmi
+    new_verdict = merged_patient.verdict
+
+    # 6) prepare parameterized UPDATE (only changed fields + bmi & verdict)
+    field_to_col = {
+        "name": "name",
+        "city": "city",
+        "age": "age",
+        "gender": "gender",
+        "height": "height",
+        "weight": "weight",
+    }
+
+    cols = []
+    params = []
+
+    for field, col in field_to_col.items():
+        if field in changes:
+            cols.append(f"{col} = ?")
+            params.append(getattr(merged_patient, field))
+
+    # always update bmi & verdict (depend on height/weight)
+    cols.append("bmi = ?")
+    params.append(new_bmi)
+    cols.append("verdict = ?")
+    params.append(new_verdict)
+
+    params.append(id)  # WHERE clause parameter
+
+    sql = f"UPDATE patients SET {', '.join(cols)} WHERE patient_id = ?"
+    cur.execute(sql, tuple(params))
+    conn.commit()
+
+    # 7) return updated row
+    cur.execute("SELECT * FROM patients WHERE patient_id = ?", (id,))
+    updated_row = dict(cur.fetchone())
+    conn.close()
+    return JSONResponse(status_code=200, content={"message": "Patient updated", "patient": updated_row})
+
+# delete route
+@app.delete('/delete/{id}')
+def delete_patient(id : int = Path(..., description='ID of the patient in the DB', example='1')):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+                   SELECT * FROM patients 
+                   WHERE patient_id = ?
+                   """,(id,))
+    row = cursor.fetchone()
+    
+    if not row:
+        raise HTTPException(status_code=404, detail='Patient not found')
+    
+    
+    cursor.execute("""
+                   DELETE FROM patients 
+                   WHERE patient_id = ?
+                   """,(id,))
+    conn.commit()
+    conn.close()
+    return JSONResponse(status_code=200, content={'message': 'Patient deleted successfully'})
