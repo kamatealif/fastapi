@@ -1,3 +1,7 @@
 .venv/* 
 .venv
-__pychache__
+__pychache__/*
+
+
+# not to include 
+./patients.db

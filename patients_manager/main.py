@@ -18,7 +18,7 @@ def init_db():
     cursor = conn.cursor()
     cursor.execute("""
                    create table if not exists patients(
-                       patient_id text primary key,
+                       patient_id int primary key,
                        name text not null,
                        city text not null,
                        age integer not null,
@@ -86,14 +86,20 @@ def view():
     conn.close()
     return result
 
-# @app.get('/patient/{patient_id}')
-# def view_patient(patient_id: str = Path(..., description='ID of the patient in the DB', example='P001')):
-#     # load all the patients
-#     # data = load_data()
-
-#     # if patient_id in data:
-#     #     return data[patient_id]
-#     # raise HTTPException(status_code=404, detail='Patient not found')
+@app.get('/patient/{patient_id}')
+def view_patient(patient_id: int = Path(..., description='ID of the patient in the DB', example='P001')):
+    # load all the patient
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(f'select * from patients where patient_id=\"{patient_id}\"')
+    rows = cursor.fetchall()
+    
+    if not rows:
+        raise HTTPException(status_code=404, detail='Patient not found')
+    
+    result = [dict(row) for row in rows]
+    conn.close()
+    return result
 
 # @app.get('/sort')
 # def sort_patients(sort_by: str = Query(..., description='Sort on the basis of height, weight or bmi'), order: str = Query('asc', description='sort in asc or desc order')):
@@ -117,6 +123,7 @@ def view():
 @app.post('/create')
 def create_patient(patient: Patient):
 
+    # load the data
     conn = get_connection()
     cursor = conn.cursor()
     try:
@@ -129,4 +136,5 @@ def create_patient(patient: Patient):
     finally:
         conn.close()
     
+    # return statuscode to variafy patient created 
     return JSONResponse(status_code=201, content={'message': 'Patient created successfully'})
