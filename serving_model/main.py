@@ -91,6 +91,15 @@ def predict_premium(data: UserInput):
 
     return JSONResponse(status_code=200, content={'predicted_category': prediction})
 
+@app.get('/')
+def home():
+    return JSONResponse(status_code=200, content={'message': 'Welcome to the Insurance Premium Category Predictor'})
 
-
-
+@app.get('/health')
+def health_check():
+    return {
+        'status':"OK",
+        "is_model_loaded": "model Loaded" if model else "model not loaded",
+        'version': '1.0.0',
+        'status_code': 200
+    }
