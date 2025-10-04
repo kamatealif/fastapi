@@ -9,6 +9,8 @@ import pandas as pd
 with open('./models/model.pkl', 'rb') as f:
     model = pickle.load(f)
 
+# but in real world we extract it from MLFlow
+MODEL_VERSION = '1.0.0'
 app = FastAPI()
 
 tier_1_cities = ["Mumbai", "Delhi", "Bangalore", "Chennai", "Kolkata", "Hyderabad", "Pune"]
@@ -95,11 +97,13 @@ def predict_premium(data: UserInput):
 def home():
     return JSONResponse(status_code=200, content={'message': 'Welcome to the Insurance Premium Category Predictor'})
 
+# machine health check 
 @app.get('/health')
 def health_check():
     return {
         'status':"OK",
         "is_model_loaded": "model Loaded" if model else "model not loaded",
+        'model_version': MODEL_VERSION,
         'version': '1.0.0',
         'status_code': 200
     }
